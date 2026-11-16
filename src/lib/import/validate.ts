@@ -32,11 +32,16 @@ export type ImportErrorCode =
   | "multipleDefaults"
   | "unknownUnit";
 
+export type ImportField =
+  | keyof UnitRow
+  | "full_name" | "phone" | "unit_number" | "role" | "is_payer" | "receives_updates" | "lang"
+  | "name" | "categories" | "is_default";
+
 /** `line` is the spreadsheet line (header = 1); 0 means the file as a whole. */
-export type ImportError = { line: number; field: string; code: ImportErrorCode; value?: string };
+export type ImportError = { line: number; field: ImportField; code: ImportErrorCode; value?: string };
 export type ImportResult<T> = { rows: T[]; errors: ImportError[] };
 
-const REQUIRED: Record<ImportKind, string[]> = {
+const REQUIRED: Record<ImportKind, ImportField[]> = {
   units: ["floor", "number", "sqm"],
   people: ["full_name", "phone", "unit_number", "role"],
   vendors: ["name", "phone", "categories"],
@@ -81,7 +86,7 @@ function mapColumns(kind: ImportKind, table: Table, errors: ImportError[]): Reco
   return columns;
 }
 
-type Reader = { line: number; get(field: string): string; fail(field: string, code: ImportErrorCode): null };
+type Reader = { line: number; get(field: ImportField): string; fail(field: ImportField, code: ImportErrorCode): null };
 
 function eachRow(
   kind: ImportKind,
@@ -93,7 +98,7 @@ function eachRow(
   if (errors.length > 0) return;
   table.rows.forEach((cells, i) => {
     const line = i + 2;
-    const get = (field: string) => (field in columns ? cells[columns[field]] : "");
+    const get = (field: ImportField) => (field in columns ? cells[columns[field]] : "");
     visit({
       line,
       get,
@@ -105,7 +110,7 @@ function eachRow(
   });
 }
 
-function requiredText(row: Reader, field: string): string | null {
+function requiredText(row: Reader, field: ImportField): string | null {
   const value = row.get(field);
   return value === "" ? row.fail(field, "required") : value;
 }
