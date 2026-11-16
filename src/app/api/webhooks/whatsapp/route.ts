@@ -33,8 +33,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
-  // A thrown error returns 500 and Meta retries. Dedupe prevents double-processing, but a
-  // message that was stored and then failed is not reprocessed (revisit with the agent, day 3).
+  // Any non-200 makes Meta redeliver; claims in the messages table keep that safe.
   const summary = await handleWebhook(parsed.data, productionDeps());
-  return Response.json({ ok: true, ...summary });
+  return Response.json({ ok: !summary.retry, ...summary }, { status: summary.retry ? 500 : 200 });
 }

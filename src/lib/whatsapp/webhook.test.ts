@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { catalogs } from "@/i18n/messages";
-import { mayMessage, sendText } from "./client";
+import { mayMessage, sendText, type SendStatus } from "./client";
 import { webhookPayload } from "./schema";
 import { sign, verifySignature } from "./signature";
 import { handleWebhook, type InboundRow, type OutboundRow, type WebhookDeps } from "./webhook";
@@ -28,27 +28,47 @@ const text = (id: string, body: string, from = "972500000001") => ({
   text: { body },
 });
 
+type Stored = InboundRow & { processed: boolean; claimed: boolean; attempts: number };
+
 function fakeDeps(langByPhone: Record<string, string> = {}) {
-  const inbound: InboundRow[] = [];
+  const inbound: Stored[] = [];
   const outbound: OutboundRow[] = [];
   const sent: { to: string; body: string }[] = [];
   const touched: string[] = [];
+  const control = { sendStatus: "sent" as SendStatus, maxAttempts: 5 };
+  const find = (id: string) => inbound.find((r) => r.waMessageId === id);
   const deps: WebhookDeps = {
     findCompanyIdByPhoneNumberId: async (id) => (id === PHONE_NUMBER_ID ? COMPANY_ID : null),
     insertInbound: async (row) => {
-      if (inbound.some((r) => r.waMessageId === row.waMessageId)) return false;
-      inbound.push(row);
-      return true;
+      if (!find(row.waMessageId)) inbound.push({ ...row, processed: false, claimed: false, attempts: 0 });
+    },
+    claimInbound: async (_c, id) => {
+      const m = find(id);
+      if (!m) return "missing";
+      if (m.processed) return "done";
+      if (m.claimed) return "in_flight";
+      if (m.attempts >= control.maxAttempts) return "exhausted";
+      m.claimed = true;
+      m.attempts++;
+      return "claimed";
+    },
+    markProcessed: async (_c, id) => {
+      Object.assign(find(id)!, { processed: true, claimed: false });
+    },
+    releaseClaim: async (_c, id) => {
+      find(id)!.claimed = false;
     },
     touchConversation: async (_c, phone) => void touched.push(phone),
     findPersonLang: async (_c, phone) => langByPhone[phone] ?? null,
     insertOutbound: async (row) => void outbound.push(row),
     sendText: async ({ to, body }) => {
       sent.push({ to, body });
-      return { status: "sent", waMessageId: `out-${sent.length}` };
+      return control.sendStatus === "sent"
+        ? { status: "sent", waMessageId: `out-${sent.length}` }
+        : { status: control.sendStatus };
     },
   };
-  return { deps, inbound, outbound, sent, touched };
+  return { deps, inbound, outbound, sent, touched, control };
 }
 
 describe("handleWebhook", () => {
@@ -56,9 +76,17 @@ describe("handleWebhook", () => {
     const f = fakeDeps();
     const summary = await handleWebhook(payload([text("wamid.1", "hello")]), f.deps);
 
-    expect(summary).toEqual({ received: 1, duplicates: 0, replied: 1 });
+    expect(summary).toEqual({ received: 1, duplicates: 0, replied: 1, retry: false });
     expect(f.inbound).toEqual([
-      { companyId: COMPANY_ID, phone: "+972500000001", waMessageId: "wamid.1", body: "hello" },
+      {
+        companyId: COMPANY_ID,
+        phone: "+972500000001",
+        waMessageId: "wamid.1",
+        body: "hello",
+        processed: true,
+        claimed: false,
+        attempts: 1,
+      },
     ]);
     expect(f.touched).toEqual(["+972500000001"]);
     expect(f.sent[0].to).toBe("+972500000001");
@@ -78,7 +106,7 @@ describe("handleWebhook", () => {
     await handleWebhook(p, f.deps);
     const second = await handleWebhook(p, f.deps);
 
-    expect(second).toEqual({ received: 1, duplicates: 1, replied: 0 });
+    expect(second).toEqual({ received: 1, duplicates: 1, replied: 0, retry: false });
     expect(f.inbound).toHaveLength(1);
     expect(f.sent).toHaveLength(1);
   });
@@ -113,7 +141,76 @@ describe("handleWebhook", () => {
         },
       ],
     });
-    expect(await handleWebhook(statusOnly, f.deps)).toEqual({ received: 0, duplicates: 0, replied: 0 });
+    expect(await handleWebhook(statusOnly, f.deps)).toEqual({
+      received: 0,
+      duplicates: 0,
+      replied: 0,
+      retry: false,
+    });
+  });
+
+  it("asks for redelivery when the reply fails, then completes on the retry", async () => {
+    const f = fakeDeps();
+    const p = payload([text("wamid.1", "hello")]);
+    f.control.sendStatus = "failed";
+    const first = await handleWebhook(p, f.deps);
+    expect(first).toMatchObject({ retry: true, replied: 0 });
+    expect(f.inbound[0]).toMatchObject({ processed: false, claimed: false, attempts: 1 });
+
+    f.control.sendStatus = "sent";
+    const second = await handleWebhook(p, f.deps);
+    expect(second).toMatchObject({ retry: false, replied: 1, duplicates: 0 });
+    expect(f.inbound).toHaveLength(1);
+    expect(f.inbound[0]).toMatchObject({ processed: true, attempts: 2 });
+    expect(f.outbound.map((o) => o.status)).toEqual(["failed", "sent"]);
+  });
+
+  it("releases the claim and asks for redelivery when a dependency throws", async () => {
+    const f = fakeDeps();
+    f.deps.findPersonLang = async () => {
+      throw new Error("db down");
+    };
+    const summary = await handleWebhook(payload([text("wamid.1", "hello")]), f.deps);
+    expect(summary.retry).toBe(true);
+    expect(f.inbound[0]).toMatchObject({ processed: false, claimed: false });
+  });
+
+  it("one failing message does not block the others in the batch", async () => {
+    const f = fakeDeps();
+    const send = f.deps.sendText;
+    f.deps.sendText = async (args) => (args.body.includes("bad") ? { status: "failed" } : send(args));
+    const summary = await handleWebhook(payload([text("wamid.1", "bad"), text("wamid.2", "good")]), f.deps);
+    expect(summary).toMatchObject({ received: 2, replied: 1, retry: true });
+    expect(f.inbound.map((m) => m.processed)).toEqual([false, true]);
+  });
+
+  it("asks for redelivery while another invocation holds the claim", async () => {
+    const f = fakeDeps();
+    await f.deps.insertInbound({ companyId: COMPANY_ID, phone: "+972500000001", waMessageId: "wamid.1", body: "x" });
+    await f.deps.claimInbound(COMPANY_ID, "wamid.1");
+    const summary = await handleWebhook(payload([text("wamid.1", "x")]), f.deps);
+    expect(summary).toMatchObject({ duplicates: 1, retry: true });
+    expect(f.sent).toHaveLength(0);
+  });
+
+  it("stops retrying after the attempt cap", async () => {
+    const f = fakeDeps();
+    f.control.sendStatus = "failed";
+    const p = payload([text("wamid.1", "hello")]);
+    for (let i = 0; i < 5; i++) await handleWebhook(p, f.deps);
+    const sixth = await handleWebhook(p, f.deps);
+    expect(sixth).toMatchObject({ retry: false, duplicates: 1 });
+    expect(f.sent).toHaveLength(5);
+  });
+
+  it("treats allowlist-blocked and dry-run replies as processed", async () => {
+    for (const status of ["blocked", "dry_run"] as const) {
+      const f = fakeDeps();
+      f.control.sendStatus = status;
+      const summary = await handleWebhook(payload([text("wamid.1", "hello")]), f.deps);
+      expect(summary).toMatchObject({ retry: false, replied: 0 });
+      expect(f.inbound[0].processed).toBe(true);
+    }
   });
 });
 

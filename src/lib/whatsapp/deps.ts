@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendText } from "./client";
-import type { WebhookDeps } from "./webhook";
+import type { ClaimResult, WebhookDeps } from "./webhook";
 
 function check(error: { message: string } | null): void {
   if (error) throw new Error(`supabase: ${error.message}`);
@@ -22,22 +22,45 @@ export function productionDeps(): WebhookDeps {
     },
 
     async insertInbound(row) {
-      const { data, error } = await db
-        .from("messages")
-        .upsert(
-          {
-            company_id: row.companyId,
-            direction: "in",
-            phone_e164: row.phone,
-            wa_message_id: row.waMessageId,
-            body: row.body,
-            status: "received",
-          },
-          { onConflict: "wa_message_id", ignoreDuplicates: true },
-        )
-        .select("id");
+      const { error } = await db.from("messages").upsert(
+        {
+          company_id: row.companyId,
+          direction: "in",
+          phone_e164: row.phone,
+          wa_message_id: row.waMessageId,
+          body: row.body,
+          status: "received",
+        },
+        { onConflict: "wa_message_id", ignoreDuplicates: true },
+      );
       check(error);
-      return (data?.length ?? 0) > 0;
+    },
+
+    async claimInbound(companyId, waMessageId) {
+      const { data, error } = await db.rpc("claim_inbound_message", {
+        p_company_id: companyId,
+        p_wa_message_id: waMessageId,
+      });
+      check(error);
+      return data as ClaimResult;
+    },
+
+    async markProcessed(companyId, waMessageId) {
+      const { error } = await db
+        .from("messages")
+        .update({ processed_at: new Date().toISOString(), claimed_at: null })
+        .eq("company_id", companyId)
+        .eq("wa_message_id", waMessageId);
+      check(error);
+    },
+
+    async releaseClaim(companyId, waMessageId) {
+      const { error } = await db
+        .from("messages")
+        .update({ claimed_at: null })
+        .eq("company_id", companyId)
+        .eq("wa_message_id", waMessageId);
+      check(error);
     },
 
     async touchConversation(companyId, phone, at) {
