@@ -1,0 +1,14 @@
+{
+  "app": {
+    "name": "Building Management",
+    "description": "Building management: service calls, vendors and collections"
+  },
+  "home": {
+    "title": "Dashboard",
+    "comingSoon": "The admin UI is under construction. The WhatsApp webhook is live at {webhookPath}."
+  },
+  "whatsapp": {
+    "echo": "We received your message: {text}",
+    "unsupportedMessageType": "For now we can only receive text messages and photos."
+  }
+}
