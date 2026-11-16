@@ -1,0 +1,42 @@
+{
+  "headers": {
+    "units": {
+      "floor": ["floor", "קומה"],
+      "number": ["number", "unit", "unit_number", "apartment", "דירה", "מספר דירה", "מס' דירה", "מס דירה"],
+      "sqm": ["sqm", "area", "מ\"ר", "מר", "מטר", "שטח", "שטח במ\"ר", "גודל"]
+    },
+    "people": {
+      "full_name": ["full_name", "name", "שם", "שם מלא"],
+      "phone": ["phone", "mobile", "טלפון", "נייד", "מספר טלפון", "טלפון נייד"],
+      "unit_number": ["unit", "unit_number", "apartment", "דירה", "מספר דירה", "מס' דירה", "מס דירה"],
+      "role": ["role", "תפקיד", "סוג", "סטטוס"],
+      "is_payer": ["is_payer", "payer", "משלם", "משלם דמי ניהול"],
+      "receives_updates": ["receives_updates", "updates", "מקבל עדכונים", "עדכונים"],
+      "lang": ["lang", "language", "שפה"]
+    },
+    "vendors": {
+      "name": ["name", "vendor", "שם", "שם ספק", "ספק"],
+      "phone": ["phone", "mobile", "טלפון", "נייד", "מספר טלפון"],
+      "categories": ["categories", "category", "קטגוריות", "קטגוריה", "תחום", "תחומים"],
+      "is_default": ["is_default", "default", "ברירת מחדל"]
+    }
+  },
+  "values": {
+    "role": {
+      "owner": ["owner", "בעלים", "בעל דירה", "בעלת דירה", "בעל הדירה"],
+      "tenant": ["tenant", "שוכר", "שוכרת", "דייר", "דיירת"],
+      "committee": ["committee", "ועד", "ועד בית", "חבר ועד", "חברת ועד"]
+    },
+    "category": {
+      "elevator": ["elevator", "מעלית", "מעליות"],
+      "leak": ["leak", "plumbing", "נזילה", "נזילות", "אינסטלציה", "אינסטלטור"],
+      "common_electricity": ["common_electricity", "electricity", "חשמל", "חשמלאי"],
+      "tenant_club": ["tenant_club", "club", "מועדון", "מועדון דיירים"],
+      "door_or_code": ["door_or_code", "door", "דלת", "דלתות", "קוד", "אינטרקום"],
+      "cleaning": ["cleaning", "ניקיון"],
+      "other": ["other", "אחר", "כללי"]
+    },
+    "yes": ["yes", "y", "true", "1", "v", "x", "כן"],
+    "no": ["no", "n", "false", "0", "לא"]
+  }
+}

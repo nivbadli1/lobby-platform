@@ -1,0 +1,158 @@
+{
+  "app": {
+    "name": "Building Management",
+    "description": "Building management: service calls, vendors and collections"
+  },
+  "whatsapp": {
+    "echo": "We received your message: {text}",
+    "unsupportedMessageType": "For now we can only receive text messages and photos."
+  },
+  "nav": {
+    "buildings": "Buildings",
+    "signOut": "Sign out"
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back"
+  },
+  "login": {
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "invalid": "Wrong email or password."
+  },
+  "noAccess": {
+    "title": "No access",
+    "body": "Your user is not linked to a management company. Contact the system administrator."
+  },
+  "roles": {
+    "owner": "Owner",
+    "tenant": "Tenant",
+    "committee": "Committee"
+  },
+  "categories": {
+    "elevator": "Elevator",
+    "leak": "Leak",
+    "common_electricity": "Common electricity",
+    "tenant_club": "Tenant club",
+    "door_or_code": "Door / code",
+    "cleaning": "Cleaning",
+    "other": "Other"
+  },
+  "buildings": {
+    "title": "Buildings",
+    "new": "New building",
+    "empty": "No buildings yet. Start by creating the first one.",
+    "name": "Building name",
+    "slug": "URL slug",
+    "slugHint": "Lowercase letters, digits and hyphens. Used in the report form link: /report/{slug}",
+    "address": "Address",
+    "feePerSqm": "Management fee per sqm (ILS)",
+    "approvalThreshold": "Committee approval threshold (ILS)",
+    "bankAccountRef": "Building bank account details",
+    "approvalPolicy": "Committee approval policy",
+    "policy": {
+      "first": "First answer decides",
+      "majority": "Majority of the committee",
+      "all": "All committee members"
+    },
+    "create": "Create building",
+    "save": "Save",
+    "saved": "Saved.",
+    "details": "Building details",
+    "errors": {
+      "required": "Required.",
+      "invalidSlug": "Invalid slug.",
+      "slugTaken": "This slug is already in use.",
+      "invalidAmount": "Invalid amount.",
+      "generic": "Saving failed. Try again."
+    }
+  },
+  "building": {
+    "units": "Units ({count})",
+    "people": "Residents and owners ({count})",
+    "vendors": "Vendors ({count})",
+    "noUnits": "No units. Import a units file.",
+    "noPeople": "No people. Import a people file after the units.",
+    "noVendors": "No vendors. Import a vendors file.",
+    "floor": "Floor",
+    "unit": "Unit",
+    "sqm": "Sqm",
+    "monthlyFee": "Monthly charge (ILS)",
+    "fullName": "Name",
+    "phone": "Phone",
+    "role": "Role",
+    "payer": "Payer",
+    "lang": "Language",
+    "vendorName": "Vendor",
+    "vendorCategories": "Categories",
+    "defaultFor": "Building default for",
+    "needsVerification": "Needs verification"
+  },
+  "import": {
+    "title": "Import from file",
+    "kindLabel": "What are you importing?",
+    "kind": {
+      "units": "Units",
+      "people": "Residents and owners",
+      "vendors": "Vendors"
+    },
+    "file": "CSV or Excel (xlsx) file",
+    "check": "Check file",
+    "checking": "Checking...",
+    "columnsHint": {
+      "units": "Columns: floor, number, sqm.",
+      "people": "Columns: full_name, phone, unit, role (owner / tenant / committee). Optional: payer (yes/no), updates, lang. One row per role a person has in a unit.",
+      "vendors": "Columns: name, phone, categories (comma-separated). Optional: default (yes/no)."
+    },
+    "order": "Import order: units, then people, then vendors. Re-importing the same file updates rows and does not duplicate them.",
+    "valid": "{count, plural, one {1 valid row} other {# valid rows}}",
+    "errorsTitle": "{count, plural, one {1 problem found} other {# problems found}}. Fix the file and check again; nothing is imported until the file is clean.",
+    "line": "Line",
+    "field": "Field",
+    "problem": "Problem",
+    "value": "Value",
+    "wholeFile": "Whole file",
+    "commit": "Import {count} rows",
+    "committing": "Importing...",
+    "done": "{count} rows imported.",
+    "commitFailed": "The import failed and nothing was saved. Try again.",
+    "fields": {
+      "floor": "Floor",
+      "number": "Unit",
+      "sqm": "Sqm",
+      "full_name": "Full name",
+      "phone": "Phone",
+      "unit_number": "Unit",
+      "role": "Role",
+      "is_payer": "Payer",
+      "receives_updates": "Receives updates",
+      "lang": "Language",
+      "name": "Vendor name",
+      "categories": "Categories",
+      "is_default": "Default"
+    },
+    "errors": {
+      "missingColumn": "Column is missing from the file",
+      "required": "Missing value",
+      "invalidNumber": "Invalid number",
+      "invalidPhone": "Invalid phone number",
+      "invalidRole": "Unknown role",
+      "invalidCategory": "Unknown category",
+      "invalidBoolean": "Use yes or no",
+      "duplicate": "Duplicate row",
+      "multiplePayers": "More than one payer for the same unit",
+      "multipleDefaults": "More than one default vendor for the same category",
+      "unknownUnit": "Unit does not exist in the building"
+    },
+    "fileErrors": {
+      "noFile": "No file selected.",
+      "unsupportedFormat": "Unsupported file type. Save as CSV or xlsx.",
+      "empty": "The file is empty or has no data rows.",
+      "tooLarge": "The file is too large (max 5MB and 5,000 rows).",
+      "unreadable": "The file could not be read."
+    }
+  }
+}
